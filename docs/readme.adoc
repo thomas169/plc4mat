@@ -1,0 +1,37 @@
+= plc4mex
+
+[.none]
+PLC4mex is a C++ mex wrapper for the PLC4x library. 
+Specifcalliy it links to the PLC4x C implamentation (PLC4c) for all PLC commuincation.
+
+Included are mex function for use in MATLAB and a C++ S-function for use in Simulink.
+The Simulink implamentation includes a masked library block to make use of plc4mex easier.
+Furthermore the Simulink implamentation includes a TLC for inlining ducring code-generation.
+
+== Using in MATLAB
+
+    plc4mex(fucntion_name [, args ...])
+
+The `fucntion_name` argument can be:
+
+[cols="1,2",options=header]
+|===
+| Fucntion Name | Description
+| `connect` | Initalise and connect to the PLC
+| `status` | Return the status of the PLC connection
+| disconnect` | Disconnect from the PLC and free system
+| `release` | Unlock the mex object so you can clear it, (locked in constructor)
+| `read` | Read values as specified in arguments and return via output
+| `write` | Write vales as specified in arguments
+|===
+
+You have some options for passing in required args to the IO functions (`read` & `write`):
+
+* Structures
+* Cell Arrays
+* Name Value Pairs
+
+== Using in Simulink
+
+to be finished.
+
