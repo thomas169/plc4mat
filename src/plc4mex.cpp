@@ -404,7 +404,7 @@ plc4c_data* MexFunction::encodeWriteData(StructArray data, size_t idx)
                 bool vs[nElem];
                 for (i = 0 ; i < nElem ; i++)
                     vs[i] = values[i];
-                return plc4c_data_create_bool_data_array(vs, nElem));
+                return (plc4c_data_create_bool_data_array(vs, nElem));
             } else {
                 return (plc4c_data_create_bool_data(values[0]));
             }

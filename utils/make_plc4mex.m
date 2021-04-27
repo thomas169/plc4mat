@@ -1,12 +1,12 @@
-function make_plc4c(recipe)
+function make_plc4mex(recipe)
 % psudo makefile
 
 plc4c_root = '/home/thomas/MEGA/plc4x/sandbox/plc4c/';
 
-name = 'plc4c';
+srcName = 'plc4mex';
 srcDir = 'src';
 outDir = 'bin';
-plc4c_mex_root = fullfile(strrep(mfilename('fullpath'),mfilename,''),'..');
+projectRoot = fullfile(strrep(mfilename('fullpath'),mfilename,''),'..');
 
 default_goal = 'build';
 if nargin == 0 
@@ -15,11 +15,11 @@ end
 
 %% Options, probably no need to change
 
-args.target = fullfile(plc4c_mex_root,srcDir,[name '.mexa64']);
-args.srcs = {fullfile(plc4c_mex_root,srcDir,[name '.cpp'])};
+args.root = projectRoot;
+args.srcName = srcName;
+args.srcDir = srcDir;
+args.outDir = outDir;
 args.libs = {'-ldl'};
-args.outdir = outDir;
-args.output = name;
 
 args.objects = {
     fullfile(plc4c_root, 'spi', 'CMakeFiles', 'plc4c-spi.dir', 'src', 'write_buffer.c.o'),...
@@ -62,12 +62,13 @@ end
 end
 
 function build(args)
-    mex(args.flags{:}, args.incs{:}, args.srcs{:}, args.objects{:}, ...
-        args.archives{:},'-outdir', args.outdir,'-output', args.output,... 
+    fileName = fullfile(args.root, args.srcDir, [args.srcName '.cpp']);
+    mex(args.flags{:}, args.incs{:}, fileName, args.objects{:}, ...
+        args.archives{:},'-outdir', args.outDir,'-output', args.srcName,... 
         args.libs{:} );
 end
 
 function clean(args)
-    fileName = fullfile(args.outdir,args.target);
+    fileName = fullfile(args.root, args.outDir,[args.srcName '.mexa64'] );
     delete(fileName);
 end

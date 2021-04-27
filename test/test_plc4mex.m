@@ -1,4 +1,4 @@
-function varargout = test_plc4c(scenario)
+function varargout = test_plc4mex(scenario)
 
 if nargin == 0 
     scenario = 'all';
@@ -54,21 +54,21 @@ end
 
 %% build
 function build()
-    plc4c_b('release'); 
-    make_plc4c; 
+    plc4mex('release'); 
+    make_plc4mex; 
 end
 
 %% connect
 function connect()
-    plc4c_b('connect');
+    plc4mex('connect');
 end
 
 %% write
 function write(write_req)
-    plc4c_b('write', write_req);
+    plc4mex('write', write_req);
 end
 
 %% read
 function read_resp = read(read_req)
-    read_resp = plc4c_b('read', read_req);
+    read_resp = plc4mex('read', read_req);
 end

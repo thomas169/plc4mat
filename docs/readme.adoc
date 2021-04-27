@@ -1,25 +1,43 @@
-= plc4mex
+= plc4mat
 
 [.none]
-PLC4mex is a C++ mex wrapper for the PLC4x library. 
-Specifcalliy it links to the PLC4x C implamentation (PLC4c) for all PLC commuincation.
+PLC4mat is a MATLAB wrapper for the PLC4x library written in C flavoured C++. 
+Specifically it links to the C implamentation of PLC4x (PLC4c) for all PLC communication.
 
-Included are mex function for use in MATLAB and a C++ S-function for use in Simulink.
-The Simulink implamentation includes a masked library block to make use of plc4mex easier.
-Furthermore the Simulink implamentation includes a TLC for inlining ducring code-generation.
+Included are a mex function for use in MATLAB (plc4mex) and S-function for use in Simulink (plc4sim).
+The mex function allows use of 3 IO formats the use of which will depend on IO complexity.
+The Simulink implamentation includes a masked library block to make use of plc4sim easier.
 
+== Getting Started
+
+To use plc4mat we first need to compile the two targets in MATLAB.
+
+For plc4mex first compile the mex binary via:
+
+    make_plc4mex
+
+For plc4sim first compile in s-function via:
+
+    make_plc4sim
+
+These rely on the latest version of PLC4c, else compilation will fail.
+Furthermore it is tested only on Linux.
+
+[[plc4mex]]
 == Using in MATLAB
 
-    plc4mex(fucntion_name [, args ...])
+Wwe can call the mex function as:
 
-The `fucntion_name` argument can be:
+    plc4mex(function_name [, args ...])
+
+The `function_name` argument can be:
 
 [cols="1,2",options=header]
 |===
-| Fucntion Name | Description
-| `connect` | Initalise and connect to the PLC
+| Function Name | Description
+| `connect` | Initialise and connect to the PLC
 | `status` | Return the status of the PLC connection
-| disconnect` | Disconnect from the PLC and free system
+| `disconnect` | Disconnect from the PLC and free system
 | `release` | Unlock the mex object so you can clear it, (locked in constructor)
 | `read` | Read values as specified in arguments and return via output
 | `write` | Write vales as specified in arguments
@@ -31,7 +49,22 @@ You have some options for passing in required args to the IO functions (`read` &
 * Cell Arrays
 * Name Value Pairs
 
-== Using in Simulink
+[[plc4sim]]
+== Using in Simulink 
 
-to be finished.
 
+
+The library block can be found in `plcLibrary.slx`. 
+This block is masked so one can adjust parameters easily.
+
+[#img-plc4sim] 
+.plc4sim block read and writing
+image::./resources/plc4sim.png[plc4sim]
+ 
+== Limitations
+
+plc4mat (ie. plc4mex & plc4sim) support only TCP transport and the S7 protocol.
+
+plc4mex supports only float values.
+
+plc4sim doesn't support compound values (busses). 
