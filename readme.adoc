@@ -59,7 +59,7 @@ This block is masked so one can adjust parameters easily.
 
 [#img-plc4sim] 
 .plc4sim block read and writing
-image::./resources/plc4sim.png[plc4sim]
+image::/plc4sim.png[plc4sim]
  
 == Limitations
 
