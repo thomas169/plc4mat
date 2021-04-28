@@ -80,6 +80,11 @@ char _ERROR_[128];
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 
+#define ssGetInputPortBytes(S,i) ssGetDataTypeSize(S, \
+    ssGetInputPortDataType(S,i)) * ssGetInputPortWidth(S,i)
+#define ssGetOutputPortBytes(S,i) ssGetDataTypeSize(S, \
+    ssGetOutputPortDataType(S,i)) * ssGetOutputPortWidth(S,i)
+
 // Function: typeNameIsBuiltIn ============================================
 // Abstract: Check if the argument is a Simulink builtin type
 int parsePortString(const char* portStr, DimsInfo_T* dimsInfo, char * const typeStr) {
@@ -447,7 +452,7 @@ char* getPlcTypeStringFromTypeId(DTypeId id) {
         case SS_BOOLEAN:
             return ((char*) "BIT");
         default:
-            return ((char*) "BYTE");
+            return ((char*) "USINT");
     }
 }
 
@@ -532,7 +537,10 @@ static void mdlStart(SimStruct *S) {
             ERROR("failed to find port tokens");
 
         typeId = ssGetInputPortDataType(S,idx);
-        width = ssGetInputPortWidth(S, idx);
+        if ssIsDataTypeABus(S,typeId)
+            width = ssGetOutputPortBytes(S, idx);
+        else
+            width = ssGetOutputPortWidth(S, idx);
         setPortStringWorkVector(&writes[idx], typeId,  width, portToken);
         INFO("Write %lu: %s\n",idx, writes[idx]);
     }
@@ -542,7 +550,10 @@ static void mdlStart(SimStruct *S) {
         if (findCharInstanceIdx(portToken, ':', 2))
             ERROR("failed to find port tokens");
         typeId = ssGetOutputPortDataType(S,idx);
-        width = ssGetOutputPortWidth(S, idx);
+        if ssIsDataTypeABus(S,typeId)
+            width = ssGetOutputPortBytes(S, idx);
+        else
+            width = ssGetOutputPortWidth(S, idx);
         setPortStringWorkVector(&reads[idx], typeId,  width, portToken);
         INFO("Read %lu: %s\n",idx, reads[idx]);
     }
@@ -658,99 +669,118 @@ plc4c_data* encodeWriteData(SimStruct *S, size_t port) {
                 return (plc4c_data_create_bool_array(&sigPtrs->bit, nElem));
             else
                 return (plc4c_data_create_bool_data(sigPtrs->bit));
-        default:
-            return nullptr;
+        default: 
+            nElem = ssGetInputPortBytes(S,port);
+            if (nElem > 1) 
+                return (plc4c_data_create_uint8_t_array(&sigPtrs->ub, nElem));
+            else
+                return (plc4c_data_create_uint8_t_data(sigPtrs->ub));
+               
+            // its a bus so proably getting complex 
+
+        
     }
 }
 
 void decodeReadData(SimStruct *S, size_t port, plc4c_read_response* responce) {
     
-    DTypeId dt = ssGetOutputPortDataType(S, port);
-    int nElem = ssGetOutputPortWidth(S, port);
-    int idx;
-    
-    void *sigPtrs = ssGetOutputPortSignal(S, port);
-    
-    plc4c_response_value_item *responce_value;
-    plc4c_data *data;
-    plc4c_data *rootdata;
-    responce_value = (plc4c_response_value_item *) plc4c_utils_list_get_value(responce->items, port);
-    rootdata = (plc4c_data *) responce_value->value;
+    DTypeId dtIdx;
+    int nElem, idx;
+    void *sigPtrs;
+    plc4c_data *itemData, *responceData;
 
-    switch (dt) {
+    dtIdx = ssGetOutputPortDataType(S, port);
+    nElem = ssGetOutputPortWidth(S, port);
+    sigPtrs = ssGetOutputPortSignal(S, port);
+    responceData = (plc4c_data *) ((plc4c_response_value_item *) 
+        plc4c_utils_list_get_value(responce->items, port))->value;
+
+    switch (dtIdx) {
         case SS_DOUBLE:
             for (idx = 0 ; idx < nElem ; idx++) {
-                if (nElem > 1)
-                    data = (plc4c_data *) plc4c_utils_list_get_value(&rootdata->data.list_value,idx);
-                //sigPtrs[idx].dbl = data->data.double_value;
+                itemData = nElem > 1 ? (plc4c_data*) plc4c_utils_list_get_value(
+                    &responceData->data.list_value, idx) : responceData;
+                ASSERT(itemData != NULL, "invalid data for outputs");
+                ((double*)sigPtrs)[idx] = itemData->data.double_value;
             }
+            break;
         case SS_SINGLE:
             for (idx = 0 ; idx < nElem ; idx++) {
-                if (nElem > 1)
-                    data = (plc4c_data *) plc4c_utils_list_get_value(&rootdata->data.list_value,idx);
-                else
-                    data = rootdata;
-                if (data)
-                    ((float*)sigPtrs)[idx] = data->data.float_value;
-                else
-                
-                    ERROR("invalid data for outputs");
+                itemData = nElem > 1 ? (plc4c_data*) plc4c_utils_list_get_value(
+                    &responceData->data.list_value, idx) : responceData;
+                ASSERT(itemData != NULL, "invalid data for outputs");
+                ((float*)sigPtrs)[idx] = itemData->data.float_value;
             }
             break;
         case SS_INT8:
             for (idx = 0 ; idx < nElem ; idx++) {
-                if (nElem > 1)
-                    data = (plc4c_data *) plc4c_utils_list_get_value(&rootdata->data.list_value,idx);
-                else
-                    data = rootdata;
-                //sigPtrs[idx].sb = data->data.char_value;
+                itemData = nElem > 1 ? (plc4c_data*) plc4c_utils_list_get_value(
+                    &responceData->data.list_value, idx) : responceData;
+                ASSERT(itemData != NULL, "invalid data for outputs");
+                ((int8_t*)sigPtrs)[idx] = itemData->data.char_value;
             }
+            break;
         case SS_UINT8:
             for (idx = 0 ; idx < nElem ; idx++) {
-                if (nElem > 1)
-                    data = (plc4c_data *) plc4c_utils_list_get_value(&rootdata->data.list_value,idx);
-                else
-                    data = rootdata;
-                //sigPtrs[idx].ub = data->data.uchar_value;
+                itemData = nElem > 1 ? (plc4c_data*) plc4c_utils_list_get_value(
+                    &responceData->data.list_value, idx) : responceData;
+                ASSERT(itemData != NULL, "invalid data for outputs");
+                ((uint8_t*)sigPtrs)[idx] = itemData->data.uchar_value;
             }
+            break;
         case SS_INT16:
             for (idx = 0 ; idx < nElem ; idx++) {
-                if (nElem > 1)
-                    data = (plc4c_data *) plc4c_utils_list_get_value(&rootdata->data.list_value,idx);
-                else
-                    data = rootdata;
-                //sigPtrs[idx].ss = data->data.short_value;
+                itemData = nElem > 1 ? (plc4c_data*) plc4c_utils_list_get_value(
+                    &responceData->data.list_value, idx) : responceData;
+                ASSERT(itemData != NULL, "invalid data for outputs");
+                ((int16_t*)sigPtrs)[idx] = itemData->data.short_value;
             }
+            break;
         case SS_UINT16:
             for (idx = 0 ; idx < nElem ; idx++) {
-                if (nElem > 1)
-                    data = (plc4c_data *) plc4c_utils_list_get_value(&rootdata->data.list_value,idx);
-                else
-                    data = rootdata;
-                //sigPtrs[idx].us = data->data.ushort_value;
+                itemData = nElem > 1 ? (plc4c_data*) plc4c_utils_list_get_value(
+                    &responceData->data.list_value, idx) : responceData;
+                ASSERT(itemData != NULL, "invalid data for outputs");
+                ((uint16_t*)sigPtrs)[idx] = itemData->data.ushort_value;
             }
+            break;
         case SS_INT32:
             for (idx = 0 ; idx < nElem ; idx++) {
-                if (nElem > 1)
-                    data = (plc4c_data *) plc4c_utils_list_get_value(&rootdata->data.list_value,idx);
-                else
-                    data = rootdata;
-                //sigPtrs[idx].si = data->data.int_value;
+                itemData = nElem > 1 ? (plc4c_data*) plc4c_utils_list_get_value(
+                    &responceData->data.list_value, idx) : responceData;
+                ASSERT(itemData != NULL, "invalid data for outputs");
+                ((int32_t*)sigPtrs)[idx] = itemData->data.int_value;
             }
+            break;
         case SS_UINT32:
             for (idx = 0 ; idx < nElem ; idx++) {
-                if (nElem > 1)
-                    data = (plc4c_data *) plc4c_utils_list_get_value(&rootdata->data.list_value,idx);
-                else
-                    data = rootdata;
-                //sigPtrs[idx].ui = data->data.uint_value;
+                itemData = nElem > 1 ? (plc4c_data*) plc4c_utils_list_get_value(
+                    &responceData->data.list_value, idx) : responceData;
+                ASSERT(itemData != NULL, "invalid data for outputs");
+                ((uint32_t*)sigPtrs)[idx] = itemData->data.uint_value;
             }
+            break;
         case SS_BOOLEAN:
             for (idx = 0 ; idx < nElem ; idx++) {
-                if (nElem > 1)
-                    data = (plc4c_data *) plc4c_utils_list_get_value(&data->data.list_value,idx);
-                //sigPtrs[idx].bit = data->data.boolean_value;
+                itemData = nElem > 1 ? (plc4c_data*) plc4c_utils_list_get_value(
+                    &responceData->data.list_value, idx) : responceData;
+                ASSERT(itemData != NULL, "invalid data for outputs");
+                ((bool*)sigPtrs)[idx] = itemData->data.boolean_value;
             }
+            break;
+        default: 
+            // its a bus encoded as a uint8_t array
+            nElem = ssGetOutputPortBytes(S,port);
+            for (idx = 0 ; idx <  nElem ; idx++) {
+                itemData = (plc4c_data*) plc4c_utils_list_get_value(
+                    &responceData->data.list_value, idx);
+                ASSERT(itemData != NULL, "invalid data for outputs");
+                ((uint8_t*)sigPtrs)[idx] = itemData->data.uchar_value;
+            }
+            break;
+
+           
+               
     }
 }
 // Function: mdlOutputs ===================================================
@@ -769,6 +799,7 @@ static void mdlOutputs(SimStruct *S, int_T tid) {
     plc4c_read_request_execution* read_execution;
     plc4c_read_response *read_response;
 
+    int xk= 3;
     plc4c_system* system  = *(plc4c_system**) ssGetDWork(S,DW_SYSTEM);
     plc4c_connection* connection = *(plc4c_connection**) ssGetDWork(S,DW_CONNECTION);
 
@@ -803,8 +834,10 @@ static void mdlOutputs(SimStruct *S, int_T tid) {
     result = plc4c_connection_create_read_request(connection, &read_request);
     ASSERT(result == OK, "plc4c_connection_create_read_request failed");
     
+    char namer[32];
     for (idx = 0 ; idx < nOut ; idx++) {
-        result = plc4c_read_request_add_item(read_request, nullptr, reads[idx]);
+        sprintf(namer, "Port%d",idx);
+        result = plc4c_read_request_add_item(read_request,namer , reads[idx]);
         ASSERT(result == OK,"plc4c_read_request_add_item failed");
     }
 
