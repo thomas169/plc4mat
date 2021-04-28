@@ -53,13 +53,12 @@ You have some options for passing in required args to the IO functions (`read` &
 == Using in Simulink 
 
 
-
 The library block can be found in `plcLibrary.slx`. 
 This block is masked so one can adjust parameters easily.
 
 [#img-plc4sim] 
 .plc4sim block read and writing
-image::/plc4sim.png[plc4sim]
+image::docs/resources/plc4sim.png[plc4sim]
  
 == Limitations
 
