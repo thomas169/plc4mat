@@ -1,7 +1,16 @@
 function make_plc4mex(recipe)
 % psudo makefile
 
-plc4c_root = '/home/thomas/MEGA/plc4x/sandbox/plc4c/';
+if ~isunix
+   error('linux only')
+end
+
+[~,b] = system('locate libplc4c-driver-s7.a');
+if isempty(b)
+    error('plc4c s7 drive not found')
+end
+
+plc4cRoot = strrep(strtrim(b),'/drivers/s7/libplc4c-driver-s7.a','');
 
 srcName = 'plc4mex';
 srcDir = 'src';

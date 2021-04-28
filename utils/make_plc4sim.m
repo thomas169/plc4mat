@@ -1,7 +1,17 @@
 function make_plc4sim(recipe)
 % psudo makefile
 
-plc4cRoot = '/home/thomas/MEGA/plc4x/sandbox/plc4c/';
+if ~isunix
+   error('linux only')
+end
+
+[~,b] = system('locate libplc4c-driver-s7.a');
+if isempty(b)
+    error('plc4c s7 drive not found')
+end
+
+plc4cRoot = strrep(strtrim(b),'/drivers/s7/libplc4c-driver-s7.a','');
+
 
 name = 'plc4sim';
 srcDir = 'src';
