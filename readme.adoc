@@ -52,7 +52,6 @@ You have some options for passing in required args to the IO functions (`read` &
 [[plc4sim]]
 == Using in Simulink 
 
-
 The library block can be found in `plcLibrary.slx`. 
 This block is masked so one can adjust parameters easily.
 
@@ -60,10 +59,12 @@ This block is masked so one can adjust parameters easily.
 .plc4sim block read and writing
 image::docs/resources/plc4sim.png[plc4sim]
  
+It can write compund values (busses / structures) by encodeing them as unit8 lists.
+
 == Limitations
 
 plc4mat (ie. plc4mex & plc4sim) support only TCP transport and the S7 protocol.
 
 plc4mex supports only float values.
 
-plc4sim doesn't support compound values (busses). 
+Only the subset of native Simulink types is supported (no long int). 
